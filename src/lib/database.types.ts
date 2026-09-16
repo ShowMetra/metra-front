@@ -40,6 +40,10 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       create_organization: { Args: { p_name: string; p_slug: string }; Returns: Database["public"]["Tables"]["organizations"]["Row"] };
+      get_or_create_review_link: {
+        Args: { p_performance_id: string; p_expires_at?: string | null };
+        Returns: Database["public"]["Tables"]["review_links"]["Row"];
+      };
       resolve_review_link: {
         Args: { p_token: string };
         Returns: Array<{ review_link_id: string; performance_id: string; show_id: string; show_title: string; show_description: string | null; starts_at: string; timezone: string; venue_name: string | null; organization_name: string }>;
