@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import type { ShowStatus } from "@/lib/database.types";
+import { showPath } from "@/lib/routes";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { errorMessage, slugify } from "@/lib/utils";
 import { useCurrentOrganization } from "@/lib/use-current-organization";
@@ -32,7 +33,7 @@ export default function NewShowPage() {
         status: values.status,
       }).select("id").single();
       if (insertError) throw insertError;
-      router.push(`/dashboard/shows/${data.id}`);
+      router.push(showPath(data.id));
       return data.id;
   }, [organization, router]);
 

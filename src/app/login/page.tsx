@@ -6,6 +6,7 @@ import { FormEvent, Suspense, useState } from "react";
 import { Brand } from "@/components/brand";
 import { ConfigNotice } from "@/components/config-notice";
 import { getSupabaseBrowserClient, hasSupabaseConfig } from "@/lib/supabase";
+import { isReviewPath } from "@/lib/routes";
 import { errorMessage, safeNextPath } from "@/lib/utils";
 
 function LoginForm() {
@@ -79,7 +80,7 @@ function LoginForm() {
           <div className="mb-8 md:hidden"><Brand href="/" /></div>
           <p className="eyebrow">Agency & guest access</p>
           <h2 className="mt-2 text-3xl font-semibold tracking-tight">{mode === "sign-in" ? "Welcome back" : "Create your account"}</h2>
-          <p className="muted mt-2 text-sm">{next.startsWith("/r/") ? "Sign in to continue your review." : "Sign in to manage shows and performances."}</p>
+          <p className="muted mt-2 text-sm">{isReviewPath(next) ? "Sign in to continue your review." : "Sign in to manage shows and performances."}</p>
 
           <div className="mt-6"><ConfigNotice /></div>
           <form onSubmit={handleEmail} className="mt-6 space-y-4">
@@ -96,7 +97,7 @@ function LoginForm() {
             {mode === "sign-in" ? "New to ShowMetra? " : "Already have an account? "}
             <button type="button" className="font-semibold text-[#176c4c]" onClick={() => { setMode(mode === "sign-in" ? "sign-up" : "sign-in"); setError(null); setMessage(null); }}>{mode === "sign-in" ? "Create account" : "Sign in"}</button>
           </p>
-          {next.startsWith("/r/") && <p className="mt-4 text-center text-sm"><Link className="muted underline" href={next}>Back to the show</Link></p>}
+          {isReviewPath(next) && <p className="mt-4 text-center text-sm"><Link className="muted underline" href={next}>Back to the show</Link></p>}
         </div>
       </section>
     </main>

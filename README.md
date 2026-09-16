@@ -11,6 +11,8 @@ Minimal Next.js frontend for the first ShowMetra review loop. It uses the existi
 
 The browser receives only the Supabase project URL and publishable key. Never add a Supabase secret key to this project.
 
+The GitHub Pages build reads the same public values from `.env.production`. A publishable key is intentionally visible in the browser bundle and remains constrained by Row Level Security.
+
 ## Setup
 
 Requirements: Node.js 20 LTS or newer and npm.
@@ -61,5 +63,17 @@ The app passes the original `/r/[token]` path through the callback so a guest re
 npm run lint
 npm run build
 ```
+
+## GitHub Pages
+
+Pushes to `main` run `.github/workflows/deploy-pages.yml`, build a static export under the `/metra-front` base path, and deploy it to GitHub Pages.
+
+Enable the workflow once in GitHub under **Settings → Pages → Build and deployment → Source → GitHub Actions**. The expected URL is:
+
+```text
+https://showmetra.github.io/metra-front/
+```
+
+Because Pages is a static host, the deployed app uses `/review/?token=...` and `/dashboard/shows/view/?id=...` entry points. The included 404 bridge redirects existing `/r/[token]` and `/dashboard/shows/[id]` links to those pages.
 
 The backend must already contain the ShowMetra migration with `resolve_review_link`, `submit_review`, `get_show_rating_summary`, and `get_show_rating_breakdown`.

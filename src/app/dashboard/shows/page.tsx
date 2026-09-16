@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Database } from "@/lib/database.types";
+import { showPath } from "@/lib/routes";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { useCurrentOrganization } from "@/lib/use-current-organization";
 
@@ -40,7 +41,7 @@ export default function ShowsPage() {
       ) : (
         <div className="mt-8 grid gap-4">
           {shows.map((show) => (
-            <Link key={show.id} href={`/dashboard/shows/${show.id}`} className="card flex items-center justify-between gap-4 p-5 transition hover:-translate-y-0.5 hover:border-[#9eb7a6]">
+            <Link key={show.id} href={showPath(show.id)} className="card flex items-center justify-between gap-4 p-5 transition hover:-translate-y-0.5 hover:border-[#9eb7a6]">
               <div><h2 className="font-semibold">{show.title}</h2><p className="muted mt-1 line-clamp-1 text-sm">{show.description || "No description"}</p></div>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${show.status === "published" ? "bg-[#e9f5ee] text-[#0f5138]" : "bg-[#f0f1ee] text-[#68736c]"}`}>{show.status}</span>
             </Link>
