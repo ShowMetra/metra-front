@@ -11,5 +11,7 @@ export function formatDate(value: string, timezone?: string) {
 }
 
 export function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong. Please try again.";
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message;
+  return "Something went wrong. Please try again.";
 }

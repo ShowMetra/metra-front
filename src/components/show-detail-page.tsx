@@ -124,8 +124,18 @@ export function ShowDetailPage({ id }: { id: string }) {
     setLinkBusy(performanceId);
     setError(null);
     try {
-      const { error: linkError } = await getSupabaseBrowserClient().rpc("get_or_create_review_link", { p_performance_id: performanceId });
-      if (linkError) throw linkError;
+      const supabase = getSupabaseBrowserClient();
+      const { error: linkError } = await supabase.rpc("get_or_create_review_link", { p_performance_id: performanceId });
+      if (linkError) {
+        const rpcIsMissing = linkError.code === "PGRST202" || linkError.message.includes("get_or_create_review_link");
+        if (!rpcIsMissing) throw linkError;
+
+        const { error: insertError } = await supabase.from("review_links").insert({
+          performance_id: performanceId,
+          is_active: true,
+        });
+        if (insertError) throw insertError;
+      }
       await load();
     } catch (caught) {
       setError(errorMessage(caught));
