@@ -57,7 +57,7 @@ export function ShowDetailPage({ id }: { id: string }) {
     setShow(showResult.data);
     setPerformances(performanceData);
     if (performanceData.length) {
-      const { data, error: linksError } = await supabase.from("review_links").select("*").in("performance_id", performanceData.map((performance) => performance.id)).order("created_at", { ascending: false });
+      const { data, error: linksError } = await supabase.from("review_links").select("*").in("performance_id", performanceData.map((performance) => performance.id)).eq("is_active", true).order("created_at", { ascending: false });
       if (linksError) setError(linksError.message);
       setReviewLinks(data ?? []);
     } else setReviewLinks([]);
@@ -95,8 +95,8 @@ export function ShowDetailPage({ id }: { id: string }) {
     setLinkBusy(performanceId);
     setError(null);
     try {
-      const { error: insertError } = await getSupabaseBrowserClient().from("review_links").insert({ performance_id: performanceId, is_active: true });
-      if (insertError) throw insertError;
+      const { error: linkError } = await getSupabaseBrowserClient().rpc("get_or_create_review_link", { p_performance_id: performanceId });
+      if (linkError) throw linkError;
       await load();
     } catch (caught) {
       setError(errorMessage(caught));
@@ -128,7 +128,7 @@ export function ShowDetailPage({ id }: { id: string }) {
       <div className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <section className="card p-6">
           <h2 className="text-lg font-semibold">Add performance</h2>
-          <p className="muted mt-1 text-sm">Each performance can have one or more guest links.</p>
+          <p className="muted mt-1 text-sm">Each performance has one active guest review link.</p>
           <form onSubmit={createPerformance} className="mt-5 space-y-4">
             <label className="block text-sm font-medium">Start date and time<input className="field mt-1.5" type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} required /></label>
             <label className="block text-sm font-medium">Timezone<input className="field mt-1.5" value={timezone} onChange={(event) => setTimezone(event.target.value)} required /></label>
@@ -143,11 +143,12 @@ export function ShowDetailPage({ id }: { id: string }) {
             <div className="mt-5 space-y-4">
               {performances.map((performance) => {
                 const links = reviewLinks.filter((link) => link.performance_id === performance.id);
+                const activeLink = links[0];
                 return (
                   <article key={performance.id} className="card p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div><h3 className="font-semibold">{formatDate(performance.starts_at, performance.timezone)}</h3><p className="muted mt-1 text-sm">{performance.venue_name || "Venue not set"} · {performance.timezone}</p></div>
-                      <button type="button" className="button-secondary text-sm" onClick={() => generateReviewLink(performance.id)} disabled={linkBusy === performance.id}>{linkBusy === performance.id ? "Generating…" : "Generate review link"}</button>
+                      {!activeLink && <button type="button" className="button-secondary text-sm" onClick={() => generateReviewLink(performance.id)} disabled={linkBusy === performance.id}>{linkBusy === performance.id ? "Generating…" : "Generate review link"}</button>}
                     </div>
                     {links.length > 0 && <div className="mt-4 space-y-2 border-t border-[#e3e8e3] pt-4">{links.map((link) => (
                       <div key={link.id} className="flex items-center gap-2 rounded-xl bg-[#f5f7f4] p-2.5 pl-3">
