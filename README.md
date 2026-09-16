@@ -41,7 +41,7 @@ For a local Supabase stack, obtain both values with `supabase status` from `../m
 - `/dashboard` — organization overview and first-time organization setup
 - `/dashboard/shows` — agency show list
 - `/dashboard/shows/new` — show creation
-- `/dashboard/shows/[id]` — performance creation and review-link generation
+- `/dashboard/shows/[id]` — show rating summary, guest feedback, performance creation, and review-link generation
 - `/r/[token]` — public review-link resolution, guest sign-in, review form, and rating result
 
 ## Supabase Auth configuration

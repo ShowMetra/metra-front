@@ -36,6 +36,12 @@ export type Database = {
         Update: { is_active?: boolean; expires_at?: string | null };
         Relationships: [];
       };
+      reviews: {
+        Row: { id: string; performance_id: string; reviewer_user_id: string; review_link_id: string | null; hotel_experience_impact: HotelExperienceImpact; comment: string | null; created_at: string; updated_at: string };
+        Insert: { performance_id: string; reviewer_user_id: string; review_link_id?: string | null; hotel_experience_impact: HotelExperienceImpact; comment?: string | null };
+        Update: { hotel_experience_impact?: HotelExperienceImpact; comment?: string | null };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

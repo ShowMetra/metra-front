@@ -11,11 +11,24 @@ import { errorMessage, formatDate } from "@/lib/utils";
 type Show = Database["public"]["Tables"]["shows"]["Row"];
 type Performance = Database["public"]["Tables"]["performances"]["Row"];
 type ReviewLink = Database["public"]["Tables"]["review_links"]["Row"];
+type Review = Database["public"]["Tables"]["reviews"]["Row"];
+type Summary = Database["public"]["Functions"]["get_show_rating_summary"]["Returns"][number];
+type Breakdown = Database["public"]["Functions"]["get_show_rating_breakdown"]["Returns"];
+
+const hotelImpactLabels: Record<Review["hotel_experience_impact"], string> = {
+  significantly: "Improved significantly",
+  somewhat: "Improved somewhat",
+  no_difference: "No difference",
+  no: "Did not improve",
+};
 
 export function ShowDetailPage({ id }: { id: string }) {
   const [show, setShow] = useState<Show | null>(null);
   const [performances, setPerformances] = useState<Performance[]>([]);
   const [reviewLinks, setReviewLinks] = useState<ReviewLink[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [breakdown, setBreakdown] = useState<Breakdown>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startsAt, setStartsAt] = useState("");
@@ -47,20 +60,36 @@ export function ShowDetailPage({ id }: { id: string }) {
   const load = useCallback(async () => {
     setError(null);
     const supabase = getSupabaseBrowserClient();
-    const [showResult, performanceResult] = await Promise.all([
+    const [showResult, performanceResult, summaryResult, breakdownResult] = await Promise.all([
       supabase.from("shows").select("*").eq("id", id).single(),
       supabase.from("performances").select("*").eq("show_id", id).order("starts_at", { ascending: false }),
+      supabase.rpc("get_show_rating_summary", { p_show_id: id }),
+      supabase.rpc("get_show_rating_breakdown", { p_show_id: id }),
     ]);
     if (showResult.error) { setError(showResult.error.message); setLoading(false); return; }
     if (performanceResult.error) { setError(performanceResult.error.message); setLoading(false); return; }
+    if (summaryResult.error) { setError(summaryResult.error.message); setLoading(false); return; }
+    if (breakdownResult.error) { setError(breakdownResult.error.message); setLoading(false); return; }
     const performanceData = performanceResult.data ?? [];
     setShow(showResult.data);
     setPerformances(performanceData);
+    setSummary(summaryResult.data?.[0] ?? null);
+    setBreakdown(breakdownResult.data ?? []);
     if (performanceData.length) {
-      const { data, error: linksError } = await supabase.from("review_links").select("*").in("performance_id", performanceData.map((performance) => performance.id)).eq("is_active", true).order("created_at", { ascending: false });
+      const performanceIds = performanceData.map((performance) => performance.id);
+      const [linksResult, reviewsResult] = await Promise.all([
+        supabase.from("review_links").select("*").in("performance_id", performanceIds).eq("is_active", true).order("created_at", { ascending: false }),
+        supabase.from("reviews").select("id, performance_id, reviewer_user_id, review_link_id, hotel_experience_impact, comment, created_at, updated_at").in("performance_id", performanceIds).order("created_at", { ascending: false }).limit(20),
+      ]);
+      const { data, error: linksError } = linksResult;
       if (linksError) setError(linksError.message);
       setReviewLinks(data ?? []);
-    } else setReviewLinks([]);
+      if (reviewsResult.error) setError(reviewsResult.error.message);
+      setReviews(reviewsResult.data ?? []);
+    } else {
+      setReviewLinks([]);
+      setReviews([]);
+    }
     setLoading(false);
   }, [id]);
 
@@ -125,6 +154,8 @@ export function ShowDetailPage({ id }: { id: string }) {
       {show.status !== "published" && <div className="info-box mt-6">Public review links resolve only after this show is published.</div>}
       {error && <div className="error-box mt-6">{error}</div>}
 
+      <ReviewInsights summary={summary} breakdown={breakdown} reviews={reviews} performances={performances} />
+
       <div className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <section className="card p-6">
           <h2 className="text-lg font-semibold">Add performance</h2>
@@ -174,6 +205,94 @@ export function ShowDetailPage({ id }: { id: string }) {
         />
       )}
     </>
+  );
+}
+
+function ReviewInsights({ summary, breakdown, reviews, performances }: { summary: Summary | null; breakdown: Breakdown; reviews: Review[]; performances: Performance[] }) {
+  const reviewCount = Number(summary?.reviews_count ?? 0);
+  const impactCounts = reviews.reduce<Record<Review["hotel_experience_impact"], number>>((counts, review) => {
+    counts[review.hotel_experience_impact] += 1;
+    return counts;
+  }, { significantly: 0, somewhat: 0, no_difference: 0, no: 0 });
+
+  return (
+    <section className="mt-8" aria-labelledby="feedback-heading">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="eyebrow">Audience insights</p>
+          <h2 id="feedback-heading" className="mt-2 text-2xl font-semibold tracking-tight">Feedback</h2>
+        </div>
+        <span className="muted text-sm">{reviewCount} review{reviewCount === 1 ? "" : "s"}</span>
+      </div>
+
+      {reviewCount === 0 ? (
+        <div className="card mt-5 p-7 text-center">
+          <p className="font-semibold">No reviews yet</p>
+          <p className="muted mt-2 text-sm">Feedback will appear here after a guest submits the review form.</p>
+        </div>
+      ) : (
+        <>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[0.65fr_1.35fr]">
+            <div className="card p-6">
+              <p className="muted text-sm">Overall rating</p>
+              <div className="mt-3 flex items-end gap-2">
+                <strong className="text-5xl font-semibold tracking-tight">{summary?.overall_rating?.toFixed(2) ?? "—"}</strong>
+                <span className="muted pb-1 text-sm">/ 5</span>
+              </div>
+              <p className="muted mt-3 text-sm">Based on {reviewCount} guest review{reviewCount === 1 ? "" : "s"}.</p>
+            </div>
+
+            <div className="card p-6">
+              <h3 className="font-semibold">Rating breakdown</h3>
+              <div className="mt-5 space-y-4">
+                {breakdown.map((item) => (
+                  <div key={item.criterion_code} className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 text-sm">
+                    <span>{item.criterion_name}</span>
+                    <strong>{item.average_rating?.toFixed(2) ?? "—"}</strong>
+                    <div className="col-span-2 h-2 overflow-hidden rounded-full bg-[#e8ece8]">
+                      <div className="h-full rounded-full bg-[#176c4c]" style={{ width: `${((item.average_rating ?? 0) / 5) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+            <div className="card p-6">
+              <h3 className="font-semibold">Hotel experience impact</h3>
+              <div className="mt-4 space-y-3">
+                {(Object.keys(hotelImpactLabels) as Array<Review["hotel_experience_impact"]>).map((impact) => (
+                  <div key={impact} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="muted">{hotelImpactLabels[impact]}</span>
+                    <strong>{impactCounts[impact]}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card p-6">
+              <h3 className="font-semibold">Recent feedback</h3>
+              <div className="mt-4 divide-y divide-[#e3e8e3]">
+                {reviews.map((review) => {
+                  const performance = performances.find((item) => item.id === review.performance_id);
+                  return (
+                    <article key={review.id} className="py-4 first:pt-0 last:pb-0">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="font-semibold text-[#176c4c]">{hotelImpactLabels[review.hotel_experience_impact]}</span>
+                        <span className="muted">{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(review.created_at))}</span>
+                      </div>
+                      <p className={`mt-2 text-sm leading-6 ${review.comment ? "text-[#39443d]" : "muted italic"}`}>{review.comment || "No written comment."}</p>
+                      {performance && <p className="muted mt-2 text-xs">{formatDate(performance.starts_at, performance.timezone)}{performance.venue_name ? ` · ${performance.venue_name}` : ""}</p>}
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
