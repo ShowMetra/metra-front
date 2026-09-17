@@ -12,6 +12,7 @@ type Show = Database["public"]["Tables"]["shows"]["Row"];
 type Performance = Database["public"]["Tables"]["performances"]["Row"];
 type ReviewLink = Database["public"]["Tables"]["review_links"]["Row"];
 type Review = Database["public"]["Tables"]["reviews"]["Row"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type Summary = Database["public"]["Functions"]["get_show_rating_summary"]["Returns"][number];
 type Breakdown = Database["public"]["Functions"]["get_show_rating_breakdown"]["Returns"];
 
@@ -27,6 +28,7 @@ export function ShowDetailPage({ id }: { id: string }) {
   const [performances, setPerformances] = useState<Performance[]>([]);
   const [reviewLinks, setReviewLinks] = useState<ReviewLink[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewerNames, setReviewerNames] = useState<Record<string, string>>({});
   const [summary, setSummary] = useState<Summary | null>(null);
   const [breakdown, setBreakdown] = useState<Breakdown>([]);
   const [loading, setLoading] = useState(true);
@@ -85,10 +87,20 @@ export function ShowDetailPage({ id }: { id: string }) {
       if (linksError) setError(linksError.message);
       setReviewLinks(data ?? []);
       if (reviewsResult.error) setError(reviewsResult.error.message);
-      setReviews(reviewsResult.data ?? []);
+      const reviewData = reviewsResult.data ?? [];
+      setReviews(reviewData);
+      const reviewerIds = [...new Set(reviewData.map((review) => review.reviewer_user_id))];
+      if (reviewerIds.length) {
+        const { data: profileData, error: profilesError } = await supabase.from("profiles").select("id, display_name").in("id", reviewerIds);
+        if (profilesError) setError(profilesError.message);
+        setReviewerNames(Object.fromEntries((profileData ?? []).map((profile: Pick<Profile, "id" | "display_name">) => [profile.id, profile.display_name?.trim() || "Guest"])));
+      } else {
+        setReviewerNames({});
+      }
     } else {
       setReviewLinks([]);
       setReviews([]);
+      setReviewerNames({});
     }
     setLoading(false);
   }, [id]);
@@ -164,7 +176,7 @@ export function ShowDetailPage({ id }: { id: string }) {
       {show.status !== "published" && <div className="info-box mt-6">Public review links resolve only after this show is published.</div>}
       {error && <div className="error-box mt-6">{error}</div>}
 
-      <ReviewInsights summary={summary} breakdown={breakdown} reviews={reviews} performances={performances} />
+      <ReviewInsights summary={summary} breakdown={breakdown} reviews={reviews} reviewerNames={reviewerNames} performances={performances} />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <section className="card p-6">
@@ -218,7 +230,7 @@ export function ShowDetailPage({ id }: { id: string }) {
   );
 }
 
-function ReviewInsights({ summary, breakdown, reviews, performances }: { summary: Summary | null; breakdown: Breakdown; reviews: Review[]; performances: Performance[] }) {
+function ReviewInsights({ summary, breakdown, reviews, reviewerNames, performances }: { summary: Summary | null; breakdown: Breakdown; reviews: Review[]; reviewerNames: Record<string, string>; performances: Performance[] }) {
   const reviewCount = Number(summary?.reviews_count ?? 0);
   const impactCounts = reviews.reduce<Record<Review["hotel_experience_impact"], number>>((counts, review) => {
     counts[review.hotel_experience_impact] += 1;
@@ -289,7 +301,7 @@ function ReviewInsights({ summary, breakdown, reviews, performances }: { summary
                   return (
                     <article key={review.id} className="py-4 first:pt-0 last:pb-0">
                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <span className="font-semibold text-[#176c4c]">{hotelImpactLabels[review.hotel_experience_impact]}</span>
+                        <span><strong className="text-[#17211c]">{reviewerNames[review.reviewer_user_id] || "Guest"}</strong><span className="muted"> · {hotelImpactLabels[review.hotel_experience_impact]}</span></span>
                         <span className="muted">{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(review.created_at))}</span>
                       </div>
                       <p className={`mt-2 text-sm leading-6 ${review.comment ? "text-[#39443d]" : "muted italic"}`}>{review.comment || "No written comment."}</p>

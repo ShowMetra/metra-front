@@ -6,6 +6,12 @@ export type PerformanceStatus = "scheduled" | "completed" | "cancelled";
 export type Database = {
   public: {
     Tables: {
+      profiles: {
+        Row: { id: string; display_name: string | null; avatar_url: string | null; created_at: string; updated_at: string };
+        Insert: { id: string; display_name?: string | null; avatar_url?: string | null };
+        Update: { display_name?: string | null; avatar_url?: string | null };
+        Relationships: [];
+      };
       organizations: {
         Row: { id: string; name: string; slug: string; created_at: string; updated_at: string; created_by: string | null };
         Insert: { name: string; slug: string; created_by?: string | null };
