@@ -6,7 +6,7 @@ import { FormEvent, Suspense, useState } from "react";
 import { Brand } from "@/components/brand";
 import { ConfigNotice } from "@/components/config-notice";
 import { getSupabaseBrowserClient, hasSupabaseConfig } from "@/lib/supabase";
-import { isReviewPath } from "@/lib/routes";
+import { absoluteAppUrl, isReviewPath } from "@/lib/routes";
 import { errorMessage, safeNextPath } from "@/lib/utils";
 
 function LoginForm() {
@@ -34,7 +34,7 @@ function LoginForm() {
         router.replace(next);
         router.refresh();
       } else {
-        const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+        const emailRedirectTo = absoluteAppUrl(`/auth/callback/?next=${encodeURIComponent(next)}`);
         const { data, error: authError } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo } });
         if (authError) throw authError;
         if (data.session) router.replace(next);
@@ -52,7 +52,7 @@ function LoginForm() {
     setBusy(true);
     setError(null);
     try {
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      const redirectTo = absoluteAppUrl(`/auth/callback/?next=${encodeURIComponent(next)}`);
       const { error: authError } = await getSupabaseBrowserClient().auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo },

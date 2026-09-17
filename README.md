@@ -53,7 +53,13 @@ In Supabase Dashboard → Authentication:
 3. Set the Site URL for the deployed frontend.
 4. Add redirect URLs for each environment, including:
    - `http://localhost:3000/auth/callback`
-   - `https://your-frontend-domain.example/auth/callback`
+   - `https://showmetra.github.io/metra-front/auth/callback/`
+
+For the GitHub Pages deployment, set the production Site URL to:
+
+```text
+https://showmetra.github.io/metra-front/
+```
 
 The app passes the original `/r/[token]` path through the callback so a guest returns to the same review after authentication.
 
