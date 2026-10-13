@@ -13,5 +13,5 @@ export function absoluteAppUrl(path: string) {
 }
 
 export function isReviewPath(path: string) {
-  return path.startsWith("/r/") || path.startsWith("/review?");
+  return path.startsWith("/r/") || path.startsWith("/review?") || path.startsWith("/review/?");
 }

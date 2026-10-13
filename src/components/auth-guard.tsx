@@ -17,14 +17,15 @@ export function AuthGuard({ children }: { children: (user: User) => React.ReactN
       return;
     }
     const supabase = getSupabaseBrowserClient();
+    const loginPath = `/login?next=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`;
     void supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      if (!data.user) router.replace(loginPath);
       setUser(data.user);
       setLoading(false);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (!session) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+      if (!session) router.replace(loginPath);
     });
     return () => data.subscription.unsubscribe();
   }, [pathname, router]);
