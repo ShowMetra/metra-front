@@ -53,12 +53,13 @@ In Supabase Dashboard → Authentication:
 3. Set the Site URL for the deployed frontend.
 4. Add redirect URLs for each environment, including:
    - `http://localhost:3000/auth/callback`
-   - `https://showmetra.github.io/metra-front/auth/callback/`
+   - `http://localhost:3000/auth/callback/`
+   - `https://showmetra.com/auth/callback/`
 
 For the GitHub Pages deployment, set the production Site URL to:
 
 ```text
-https://showmetra.github.io/metra-front/
+https://showmetra.com/
 ```
 
 The app passes the original `/r/[token]` path through the callback so a guest returns to the same review after authentication.
@@ -72,12 +73,12 @@ npm run build
 
 ## GitHub Pages
 
-Pushes to `main` run `.github/workflows/deploy-pages.yml`, build a static export under the `/metra-front` base path, and deploy it to GitHub Pages.
+Pushes to `main` run `.github/workflows/deploy-pages.yml`, build a static export at the custom-domain root, and deploy the `out` directory to GitHub Pages. `public/CNAME` keeps the Pages custom domain in the deployed artifact.
 
 Enable the workflow once in GitHub under **Settings → Pages → Build and deployment → Source → GitHub Actions**. The expected URL is:
 
 ```text
-https://showmetra.github.io/metra-front/
+https://showmetra.com/
 ```
 
 Because Pages is a static host, the deployed app uses `/review/?token=...` and `/dashboard/shows/view/?id=...` entry points. The included 404 bridge redirects existing `/r/[token]` and `/dashboard/shows/[id]` links to those pages.

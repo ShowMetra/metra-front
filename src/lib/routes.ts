@@ -1,5 +1,4 @@
 const isGitHubPages = process.env.NEXT_PUBLIC_GITHUB_PAGES === "true";
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 export function reviewPath(token: string) {
   return isGitHubPages ? `/review/?token=${encodeURIComponent(token)}` : `/r/${token}`;
@@ -10,7 +9,7 @@ export function showPath(id: string) {
 }
 
 export function absoluteAppUrl(path: string) {
-  return `${window.location.origin}${basePath}${path}`;
+  return `${window.location.origin}${path}`;
 }
 
 export function isReviewPath(path: string) {
